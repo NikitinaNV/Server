@@ -1,0 +1,83 @@
+"""
+
+Nikitina N.V.
+Client
+
+"""
+
+import time
+import socket
+
+
+class Client:
+
+    def __init__(self, host, port, timeout=None):
+        self.port = port
+        self.host = host
+        try:
+            self.connection = socket.create_connection((host, port), timeout)
+        except socket.error:
+            pass
+
+    def get_data(self):
+        inf = self.connection.recv(1024)
+        while not inf.endswith(b"\n\n"):
+            try:
+                inf = inf + self.connection.recv(1024)
+            except socket.error:
+                pass
+
+        inf_str = inf.decode()
+        data_output(inf_str)
+
+    def data_output(self, inf_str):
+        list_inf = inf_str.split("\n", 1)
+        begin_with = list_inf[0]
+
+        if begin_with == "error":
+            raise ClientError
+
+        return inf_str
+
+    def put(self, key, value, timestamp=None):
+        if timestamp == timestamp:
+            timestamp = int(time.time())
+        try:
+            self.connection.sendall(f"put {key} {value} {timestamp}\n".encode("utf8"))
+        except socket.error:
+            raise ClientError
+        self.get_data()
+
+    def get(self, key):
+        try:
+            self.connection.sendall(f"get {key}\n".encode("utf8"))
+        except socket.error:
+            raise ClientError
+        inf_str = self.get_data()
+
+        dict_of_data = dict()
+        if inf_str == "":
+            return {}
+        else:
+            list_of_inf = inf_str.split("\n")
+            for i in list_of_inf:
+                one_inf = i.split()
+                key = one_inf[0]
+                value = one_inf[1]
+                timestamp = one_inf[2]
+                if key not in dict_of_data:
+                    dict_of_data[key] = []
+                dict_of_data[key].append((int(timestamp), float(value)))
+            for key, list_metric in dict_of_data.items():
+                dict_of_data[key] = sorted(list_metric, key=lambda x: x[0])
+            return dict_of_data
+
+    def close(self):
+        try:
+            self.connection.close()
+        except socket.error:
+            raise ClientError
+
+
+class ClientError:
+    pass
