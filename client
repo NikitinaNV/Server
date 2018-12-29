@@ -12,6 +12,8 @@ import socket
 class Client:
 
     def __init__(self, host, port, timeout=None):
+        self.host = host
+        self.port = port
         try:
             self.socket = socket.create_connection((host, port), timeout)
         except socket.error:
